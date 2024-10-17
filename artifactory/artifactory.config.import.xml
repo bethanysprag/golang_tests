@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config xmlns="http://artifactory.jfrog.org/xsd/3.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://artifactory.jfrog.org/xsd/3.1.0 http://www.jfrog.org/xsd/artifactory-v3_1_0.xsd">
+    <remoteRepositories>
+        <remoteRepository>
+            <key>go-remote</key>
+            <type>go</type>
+            <url>https://proxy.golang.org</url>
+        </remoteRepository>
+    </remoteRepositories>
+</config>

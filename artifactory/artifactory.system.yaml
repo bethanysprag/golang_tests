@@ -1,0 +1,6 @@
+configVersion: 1
+go:
+  repositories:
+    remote:
+      go-remote:
+        url: "https://proxy.golang.org"

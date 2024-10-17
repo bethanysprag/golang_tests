@@ -1,0 +1,54 @@
+# Stage 1: Set up Artifactory
+FROM docker.bintray.io/jfrog/artifactory-oss:latest as artifactory
+
+# Copy Artifactory configuration files
+COPY artifactory/artifactory.config.import.xml /var/opt/jfrog/artifactory/etc/artifactory/
+COPY artifactory/artifactory.system.yaml /var/opt/jfrog/artifactory/var/etc/system/
+
+# Stage 2: Build the Go application
+FROM golang:1.20-alpine AS builder
+
+# Install curl for health check
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod ./
+
+# Copy source code
+COPY . .
+
+# Wait for Artifactory to be ready
+COPY artifactory/wait-for-artifactory.sh /wait-for-artifactory.sh
+RUN chmod +x /wait-for-artifactory.sh
+
+# Build the application
+RUN /wait-for-artifactory.sh && \
+    GOPROXY=http://localhost:8081/artifactory/api/go/go-remote \
+    CGO_ENABLED=0 GOOS=linux go build -o /app/main .
+
+# Final stage
+FROM alpine:latest
+
+WORKDIR /root/
+
+# Copy the binary from the builder stage
+COPY --from=builder /app/main .
+
+# Copy Artifactory from the first stage
+COPY --from=artifactory /opt/jfrog /opt/jfrog
+COPY --from=artifactory /var/opt/jfrog /var/opt/jfrog
+
+# Set Artifactory environment variables
+ENV ARTIFACTORY_HOME=/opt/jfrog/artifactory
+ENV ARTIFACTORY_USER_NAME=artifactory
+ENV ARTIFACTORY_EXTRA_JAVA_OPTIONS="-Dartifactory.home=/var/opt/jfrog/artifactory"
+
+# Expose Artifactory port
+EXPOSE 8081
+
+# Start Artifactory and run the Go application
+CMD $ARTIFACTORY_HOME/app/bin/artifactory.sh & \
+    sleep 30 && \
+    ./main
